@@ -57,7 +57,7 @@ class UsageService:
         ).fetchone()
         return row[0]
 
-    def summary(self, user_id: int) -> dict[str, int | float]:
+    def summary(self, user_id: int) -> dict:
         requests_last_minute, _ = self.requests_in_window(user_id, 60)
         tokens_last_day, _ = self.tokens_in_window(user_id, 86400)
         row = self.connection.execute(
@@ -65,10 +65,25 @@ class UsageService:
             " COALESCE(SUM(cost_dollars), 0) FROM usage_events WHERE user_id = ?",
             (user_id,),
         ).fetchone()
+        by_model = {
+            model_row[0]: {
+                "requests": model_row[1],
+                "prompt_tokens": model_row[2],
+                "completion_tokens": model_row[3],
+                "cost_dollars": round(model_row[4], 6),
+            }
+            for model_row in self.connection.execute(
+                "SELECT model, COUNT(*), COALESCE(SUM(prompt_tokens), 0),"
+                " COALESCE(SUM(completion_tokens), 0), COALESCE(SUM(cost_dollars), 0)"
+                " FROM usage_events WHERE user_id = ? GROUP BY model ORDER BY model",
+                (user_id,),
+            )
+        }
         return {
             "requests_last_minute": requests_last_minute,
             "tokens_last_day": tokens_last_day,
             "total_requests": row[0],
             "lifetime_tokens": row[1],
             "lifetime_spend_dollars": round(row[2], 6),
+            "by_model": by_model,
         }
