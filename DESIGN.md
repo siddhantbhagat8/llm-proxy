@@ -79,4 +79,18 @@ Billing data must survive a restart, ruling out in-memory-only. A single-process
 
 Vite builds the admin/usage UI to a static `dist/` that FastAPI serves — at runtime there is still exactly one server, no CORS, no extra hop (the problems that ruled out Next.js). React over a hand-rolled static page: author fluency, and the dashboard's live-polling state fits React's model. Build artifacts are not committed; the README documents the build.
 
-<!-- Upcoming: billing & limit semantics, proxy surface & auth, concurrency & load demo, admin UI scope. -->
+### 3.5 Billing & limits
+
+**Three limit types, one concern each.** Short-term = **requests/minute** (protects infrastructure from bursts; needs no token counts). Long-term = **tokens/day** (caps spend velocity — a user can't quietly burn a large budget in a day even at low RPM). Total = **lifetime spend cap in dollars** (absolute exposure, in the same currency the bill is in). Alternative considered: OpenAI-style RPM+TPM both in the short window — more faithful to real providers, but two short-window checks blur the "three distinct types" the requirement asks for.
+
+**Sliding windows, computed by SQL.** A rate check is `SELECT SUM(...) FROM usage_events WHERE user = ? AND ts > now - <window>` compared to the limit. Since the usage table must exist for billing anyway, the rate limiter is a query, not a data structure — simpler *and* more accurate than a fixed window (which permits 2× bursts at boundaries). A token bucket (bucket of permits refilling at a constant rate; empty bucket → reject) gives smoother behavior and O(1) checks, but requires live per-user counters — a second source of truth. At multi-instance scale the SQL scan flips to exactly that: token buckets in Redis; here, indexed SQLite queries over small windows are microseconds.
+
+**Optimistic enforcement (check-before, record-after).** A request's token cost is only known after it completes, so each request is admitted based on *recorded* usage: over any limit → 429 before forwarding; otherwise forward, then record. A user at their cap can overshoot by at most the cost of their in-flight requests — acceptable for in-arrears billing (the same tradeoff real providers make). Rejected alternatives: pre-flight estimation/reservation (much more code, still imprecise) and mid-stream aborts (hostile UX, saves pennies). This also settles race handling: concurrent requests near a boundary cause bounded overshoot, not corruption, so no locking is added to prevent what the billing model already tolerates.
+
+**Price sheet: hardcoded config, not data.** Per-model input/output prices ($/1M tokens), anchored to real market rates for comparable small models. A price sheet is provider configuration that changes by deploy, not runtime data — keeping it in code avoids admin endpoints, UI, and price-audit questions. **Unknown models are rejected** with OpenAI's `model_not_found` error: never proxy what you can't bill.
+
+**Errors mirror OpenAI exactly.** HTTP 429 for all three limit types with the standard error body: `rate_limit_exceeded` (+ `Retry-After`) for the windowed limits, `insufficient_quota` for the spend cap — so the `openai` SDK raises its native `RateLimitError` with no client changes. 402 for the spend cap would be purer HTTP but diverges from the API this proxy claims compatibility with.
+
+**Conservative defaults; admin overrides.** New users start at 60 RPM, 1M tokens/day, $5.00 lifetime — production-minded (a new user can't silently run up spend) rather than unlimited-until-configured. Admins set or clear each limit independently. Rejected (429'd) requests are not recorded, so they don't count toward the RPM window — retrying while blocked doesn't extend the block, and one table drives billing, limits, and usage APIs alike.
+
+<!-- Upcoming: proxy surface & auth, concurrency & load demo, admin UI scope. -->
