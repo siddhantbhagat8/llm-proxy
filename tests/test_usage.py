@@ -7,8 +7,8 @@ def test_usage_reports_limits_and_zeroed_standing(client):
     body = response.json()
     assert body["user"]["name"] == "alice"
     assert body["limits"] == {
-        "requests_per_minute": 60,
-        "tokens_per_day": 1_000_000,
+        "requests_per_minute": 5,
+        "tokens_per_day": 1_000,
         "lifetime_spend_dollars": 5.0,
     }
     assert body["usage"]["total_requests"] == 0

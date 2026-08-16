@@ -4,3 +4,4 @@ __pycache__/
 node_modules/
 frontend/dist/
 llm_proxy.db*
+DESIGN.md

@@ -151,6 +151,8 @@ except openai.RateLimitError as error:
     print(f"   RateLimitError: {error.body}")
 
 set_alice_limits(
-    requests_per_minute=60, tokens_per_day=1_000_000, lifetime_spend_dollars=5.0
+    requests_per_minute=config.DEFAULT_REQUESTS_PER_MINUTE,
+    tokens_per_day=config.DEFAULT_TOKENS_PER_DAY,
+    lifetime_spend_dollars=config.DEFAULT_LIFETIME_SPEND_DOLLARS,
 )
 print("\nAlice's limits restored to defaults. Done.")

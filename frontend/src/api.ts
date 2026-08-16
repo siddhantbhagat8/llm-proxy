@@ -68,4 +68,4 @@ export const formatTokens = (n: number) =>
   }).format(n)
 
 export const formatDollars = (n: number) =>
-  `$${n.toFixed(n < 0.1 && n > 0 ? 4 : 2)}`
+  `$${n.toFixed(n > 0 && n < 0.01 ? 6 : n > 0 && n < 0.1 ? 4 : 2)}`
