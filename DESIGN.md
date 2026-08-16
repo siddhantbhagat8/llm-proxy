@@ -93,4 +93,29 @@ Vite builds the admin/usage UI to a static `dist/` that FastAPI serves — at ru
 
 **Conservative defaults; admin overrides.** New users start at 60 RPM, 1M tokens/day, $5.00 lifetime — production-minded (a new user can't silently run up spend) rather than unlimited-until-configured. Admins set or clear each limit independently. Rejected (429'd) requests are not recorded, so they don't count toward the RPM window — retrying while blocked doesn't extend the block, and one table drives billing, limits, and usage APIs alike.
 
-<!-- Upcoming: proxy surface & auth, concurrency & load demo, admin UI scope. -->
+### 3.6 Proxy surface & auth
+
+**Whitelist, not catch-all.** The proxy forwards exactly one endpoint: `POST /chat/completions` (accepted with or without the `/v1` prefix, since the `openai` client's path depends on how `base_url` is written; Ollama requires `/v1`, so the proxy normalizes). A transparent catch-all would be more "proxy-like" but would forward traffic our usage recording can't parse — embeddings and legacy completions consume tokens too. Same principle as unknown models: never proxy what you can't bill. Adding an endpoint later = one route + one usage extractor.
+
+**`GET /models` is served from the price sheet, not forwarded.** Ollama would list everything installed locally, including models with no price. The proxy's contract is "models you may use and be billed for" — serving the list from the price sheet means the model list and the unknown-model rejection can never disagree.
+
+**Tokens: `sk-proxy-<32 hex>`, hashed at rest.** The `sk-` convention makes tokens look native in OpenAI clients and grep-able in logs. Only the SHA-256 hash is stored; plaintext is returned exactly once at creation (as real providers do), so a DB leak doesn't leak credentials. Lookup is an indexed hash equality.
+
+**Admin = `is_admin` flag, one auth scheme everywhere.** Every request — chat, usage, admin — authenticates the same way: `Authorization: Bearer <token>` → hash lookup → user row; `/admin/*` routes additionally require `is_admin`. Alternative considered: a static operator key in an env var, which keeps the admin credential out of the DB but forces a second auth path and a separate "admin key" concept in the UI. The flag wins: unified auth code, natural extension to roles, and the bootstrap problem (first admin must exist) is solved by seeding.
+
+**Routes** — the OpenAI-compatible namespace stays pristine; everything of ours lives beside it:
+
+```
+POST /chat/completions, /v1/chat/completions    proxied            (user token)
+GET  /models, /v1/models                        from price sheet   (user token)
+GET  /usage                                     own usage + limit standing (user token)
+GET  /admin/users                               list users w/ usage + limits (admin)
+POST /admin/users                               create user → token shown once (admin)
+PUT  /admin/users/{id}/limits                   set/clear limits   (admin)
+GET  /healthz                                   liveness, unauthenticated
+GET  /                                          dashboard (frontend/dist)
+```
+
+**Seeded accounts.** At startup the server ensures an admin plus two demo users (alice, bob) exist, with fixed well-known tokens (`sk-proxy-demo-*`) logged at boot — so test scripts and demos survive restarts with no token copying. This is a documented demo-only exception to hash-at-rest; real created users always get random, shown-once tokens. Auth failures mirror OpenAI exactly: 401 `invalid_api_key`, and OpenAI-shaped 403 for non-admins on admin routes.
+
+<!-- Upcoming: concurrency & load demo, admin UI scope. -->
