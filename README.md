@@ -62,7 +62,7 @@ client = openai.OpenAI(base_url="http://localhost:8000", api_key="<key from crea
 Or use the request script:
 
 ```bash
-uv run -m scripts.chat <api-key> "Say hello" [--model llama3.2:1b] [--stream]
+uv run -m scripts.chat <api-key> "Say hello" [--model llama3.2:1b] [--stream] [--image photo.jpg]
 ```
 
 ## Tests & demo
