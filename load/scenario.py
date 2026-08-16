@@ -69,23 +69,27 @@ async def stream_one(client: httpx.AsyncClient, token: str) -> tuple[float, floa
     return (first_token_at or time.monotonic()) - started, time.monotonic() - started
 
 
-async def hammer_larry(client: httpx.AsyncClient, token: str) -> tuple[int, int]:
+async def hammer_larry(client: httpx.AsyncClient, token: str) -> tuple[int, int, int]:
     """Six quick non-streamed requests against a 3 RPM limit: expect ~3 OK, ~3 429."""
-    ok = throttled = 0
+    ok = throttled = errors = 0
     for _ in range(6):
-        response = await client.post(
-            "/chat/completions",
-            headers={"Authorization": f"Bearer {token}"},
-            json={
-                "model": "llama3.2:1b",
-                "messages": [{"role": "user", "content": "Hi."}],
-                "max_tokens": 4,
-            },
-        )
+        try:
+            response = await client.post(
+                "/chat/completions",
+                headers={"Authorization": f"Bearer {token}"},
+                json={
+                    "model": "llama3.2:1b",
+                    "messages": [{"role": "user", "content": "Hi."}],
+                    "max_tokens": 4,
+                },
+            )
+        except httpx.HTTPError:
+            errors += 1
+            continue
         ok, throttled = ok + (response.status_code == 200), throttled + (
             response.status_code == 429
         )
-    return ok, throttled
+    return ok, throttled, errors
 
 
 def percentile(values: list[float], fraction: float) -> float:
@@ -101,7 +105,7 @@ async def run(proxy_url: str, user_count: int) -> None:
         limits=httpx.Limits(max_connections=user_count + 10),
     ) as client:
         started = time.monotonic()
-        results, (larry_ok, larry_429) = await asyncio.gather(
+        results, (larry_ok, larry_429, larry_errors) = await asyncio.gather(
             asyncio.gather(
                 *(stream_one(client, token) for token in tokens),
                 return_exceptions=True,
@@ -115,13 +119,21 @@ async def run(proxy_url: str, user_count: int) -> None:
     first_token_times = [ttft for ttft, _ in completed]
     print(f"\nconcurrent streams held: {user_count}   wall time: {wall:.1f}s")
     print(f"completed: {len(completed)}   failed: {failed}")
-    print(
-        "time to first token   "
-        f"p50 {percentile(first_token_times, 0.50):.1f}s   "
-        f"p95 {percentile(first_token_times, 0.95):.1f}s   "
-        f"max {max(first_token_times):.1f}s"
-    )
-    print(f"limited-larry (3 RPM): {larry_ok} ok, {larry_429} rate-limited")
+    if first_token_times:
+        print(
+            "time to first token   "
+            f"p50 {percentile(first_token_times, 0.50):.1f}s   "
+            f"p95 {percentile(first_token_times, 0.95):.1f}s   "
+            f"max {max(first_token_times):.1f}s"
+        )
+    larry_note = f" ({larry_errors} connection errors)" if larry_errors else ""
+    print(f"limited-larry (3 RPM): {larry_ok} ok, {larry_429} rate-limited{larry_note}")
+    if failed or larry_errors:
+        print(
+            "\nconnection failures usually mean a file-descriptor limit: this "
+            "scenario needs ~2x --users sockets on the proxy and ~1x here — run "
+            "`ulimit -n 4096` in BOTH terminals and retry."
+        )
 
 
 def main() -> None:

@@ -90,9 +90,10 @@ oha -z 30s -c 64 -m POST \
   http://127.0.0.1:8000/chat/completions
 ```
 
-**Concurrency** — 200 users streaming from real Ollama at once (restart Ollama with `OLLAMA_NUM_PARALLEL=4`: stop the brew service, run `OLLAMA_NUM_PARALLEL=4 ollama serve`), against the normal database so the dashboard ticks live:
+**Concurrency** — 200 users streaming from real Ollama at once (restart Ollama with `OLLAMA_NUM_PARALLEL=4`: stop the brew service, run `OLLAMA_NUM_PARALLEL=4 ollama serve`), against the normal database so the dashboard ticks live. Raise the file-descriptor limit in **both** terminals first — macOS defaults to 256 per process, and 200 concurrent streams need ~400 sockets on the proxy:
 
 ```bash
+ulimit -n 4096                                                          # both terminals
 uv run uvicorn app.main:app --port 8000 --no-access-log                 # terminal 2
 uv run -m load.scenario --users 200                                     # provisions its own users
 ```
