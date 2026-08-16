@@ -4,7 +4,7 @@ stock openai client, exactly as a user's application would.
 
 Creates (or reuses) an 'admin' and an 'alice' user directly in the database.
 
-Run from the repo root: uv run python -m scripts.demo
+Run from the repo root: uv run -m scripts.demo
 """
 
 import httpx

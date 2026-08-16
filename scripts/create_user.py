@@ -3,7 +3,7 @@
 Writes directly to the database — no running server needed — which is also how
 the first admin gets created (the admin API itself requires an admin key).
 
-Run from the repo root: uv run python -m scripts.create_user <name> [--admin]
+Run from the repo root: uv run -m scripts.create_user <name> [--admin]
 """
 
 import argparse

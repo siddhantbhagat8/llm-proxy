@@ -49,8 +49,8 @@ Create users (writes directly to the DB and prints the API key; this is also how
 the first admin is created):
 
 ```bash
-uv run python -m scripts.create_user admin --admin
-uv run python -m scripts.create_user alice
+uv run -m scripts.create_user admin --admin
+uv run -m scripts.create_user alice
 ```
 
 Then point any OpenAI client at the proxy:
@@ -62,14 +62,14 @@ client = openai.OpenAI(base_url="http://localhost:8000", api_key="<key from crea
 Or use the request script:
 
 ```bash
-uv run python -m scripts.chat <api-key> "Say hello" [--model llama3.2:1b] [--stream]
+uv run -m scripts.chat <api-key> "Say hello" [--model llama3.2:1b] [--stream]
 ```
 
 ## Tests & demo
 
 ```bash
 uv run pytest               # unit tests (Ollama mocked)
-uv run python -m scripts.demo   # live proof: chat, streaming, vision, all three limits
+uv run -m scripts.demo   # live proof: chat, streaming, vision, all three limits
                                 # (requires the proxy and Ollama running)
 ```
 

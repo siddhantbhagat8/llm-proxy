@@ -1,7 +1,7 @@
 """Send one chat request through the proxy as a given user.
 
 Run from the repo root (proxy must be running):
-  uv run python -m scripts.chat <api-key> "your prompt" [--model llama3.2:1b] [--stream]
+  uv run -m scripts.chat <api-key> "your prompt" [--model llama3.2:1b] [--stream]
 """
 
 import argparse
