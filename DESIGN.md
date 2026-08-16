@@ -172,7 +172,7 @@ The 8-worker run is statistically indistinguishable from hitting the stub direct
 **What load testing actually caught** — two real bugs that functional tests missed, which is the argument for load-testing at all:
 
 1. **Sync auth dependencies ran in FastAPI's threadpool**, so the single SQLite connection was used from many threads concurrently → `InterfaceError`s and corrupted bindings under load. Fix: the dependencies are `async`, which pins every DB call to the event-loop thread — the single-writer design made literal. (Rule recorded in code: anything touching the DB stays async.)
-2. **Multi-worker boot raced on a fresh database**: eight processes running `PRAGMA journal_mode=WAL` + schema creation simultaneously, with `busy_timeout` set *after* those statements → instant `database is locked`, server exit. Fix: `busy_timeout` is set first.
+2. **Multi-worker boot raced on a fresh database**: eight processes converting the same new file to WAL and creating the schema simultaneously → `database is locked`, server exit. `busy_timeout` does not fix this one — SQLite fails journal-mode changes *immediately* under contention (deadlock avoidance bypasses the busy handler) — so initialization retries with backoff. Verified with five consecutive fresh-DB 8-worker cold boots.
 
 Tuning that came with this: `synchronous=NORMAL` (WAL-safe; skips fsync-per-commit — at most the last writes are lost on an OS crash, acceptable for usage events) and an httpx pool limit raised above its default 100 connections.
 
