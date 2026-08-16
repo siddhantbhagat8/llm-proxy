@@ -25,8 +25,7 @@ def create_app(
         client = httpx.AsyncClient(
             base_url=config.OLLAMA_BASE_URL,
             timeout=httpx.Timeout(connect=5, read=300, write=30, pool=5),
-            # Default pool caps at 100 connections — the proxy would throttle
-            # itself below the hundreds of concurrent requests it must hold.
+            # The default 100-connection pool would cap concurrency below target.
             limits=httpx.Limits(max_connections=1000, max_keepalive_connections=100),
             transport=ollama_transport,
         )

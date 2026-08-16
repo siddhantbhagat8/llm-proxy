@@ -31,13 +31,11 @@ def connect(database_path: str) -> sqlite3.Connection:
         database_path, check_same_thread=False, autocommit=True
     )
     connection.row_factory = sqlite3.Row
-    # busy_timeout must come first: with multiple workers, boot-time WAL/schema
-    # statements race on a fresh database and fail instantly without it.
+    # busy_timeout first: concurrent worker boots race on the statements below.
     connection.execute("PRAGMA busy_timeout=5000")
     connection.execute("PRAGMA journal_mode=WAL")
-    # NORMAL skips the fsync-per-commit FULL does; with WAL this risks only the
-    # most recent writes on an OS crash — acceptable for usage events, and it
-    # is what makes hundreds of inserts/sec possible.
+    # With WAL, NORMAL risks only the newest writes on an OS crash — acceptable
+    # for usage events, and it avoids an fsync per insert.
     connection.execute("PRAGMA synchronous=NORMAL")
     connection.executescript(SCHEMA)
     return connection

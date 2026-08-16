@@ -2,9 +2,8 @@ from fastapi import Request
 
 from app.models.user import User
 
-# These must stay async: sync dependencies run in FastAPI's threadpool, which
-# would hit the single sqlite connection from many threads at once. Async keeps
-# every DB call on the event-loop thread — serialized by construction.
+# Must stay async: sync dependencies run in FastAPI's threadpool, which would
+# hit the single sqlite connection from multiple threads at once.
 
 
 async def get_current_user(request: Request) -> User:
