@@ -1,16 +1,16 @@
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { AdminView } from '@/components/admin-view'
-import { UserView } from '@/components/user-view'
-import { api, ApiError } from '@/api'
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { AdminView } from "@/components/admin-view"
+import { UserView } from "@/components/user-view"
+import { api, ApiError } from "@/api"
 
-type Session = { key: string; view: 'admin' | 'user' }
+type Session = { key: string; view: "admin" | "user" }
 
 // One page; the pasted API key decides the view (DESIGN.md 3.8):
 // admin key → fleet view, user key → self view. Key lives in React state only.
 export default function App() {
-  const [keyInput, setKeyInput] = useState('')
+  const [keyInput, setKeyInput] = useState("")
   const [session, setSession] = useState<Session | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -18,19 +18,19 @@ export default function App() {
     const key = keyInput.trim()
     setError(null)
     try {
-      await api(key, '/admin/users')
-      setSession({ key, view: 'admin' })
+      await api(key, "/admin/users")
+      setSession({ key, view: "admin" })
     } catch (probeError) {
       if (probeError instanceof ApiError && probeError.status === 403) {
         try {
-          await api(key, '/usage')
-          setSession({ key, view: 'user' })
+          await api(key, "/usage")
+          setSession({ key, view: "user" })
           return
         } catch {
           /* fall through to the error message */
         }
       }
-      setError('Invalid API key')
+      setError("Invalid API key")
     }
   }
 
@@ -44,7 +44,7 @@ export default function App() {
             size="sm"
             onClick={() => {
               setSession(null)
-              setKeyInput('')
+              setKeyInput("")
             }}
           >
             Sign out
@@ -60,7 +60,7 @@ export default function App() {
               placeholder="sk-proxy-…"
               value={keyInput}
               onChange={(e) => setKeyInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && signIn()}
+              onKeyDown={(e) => e.key === "Enter" && signIn()}
             />
             <Button onClick={signIn}>View usage</Button>
           </div>
@@ -70,7 +70,7 @@ export default function App() {
             shows your own usage.
           </p>
         </div>
-      ) : session.view === 'admin' ? (
+      ) : session.view === "admin" ? (
         <AdminView apiKey={session.key} />
       ) : (
         <UserView apiKey={session.key} />

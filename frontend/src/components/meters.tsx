@@ -1,11 +1,11 @@
-import { Progress } from '@/components/ui/progress'
-import { cn } from '@/lib/utils'
+import { Progress } from "@/components/ui/progress"
+import { cn } from "@/lib/utils"
 import {
   formatDollars,
   formatTokens,
   type Limits,
   type UsageSummary,
-} from '@/api'
+} from "@/api"
 
 function Meter({
   label,
@@ -26,25 +26,24 @@ function Meter({
         <span>{label}</span>
         <span
           className={cn(
-            'tabular-nums',
-            maxed && 'font-semibold text-destructive',
+            "tabular-nums",
+            maxed && "font-semibold text-destructive",
           )}
         >
-          {format(used)} / {limit === null ? '∞' : format(limit)}
+          {format(used)} / {limit === null ? "∞" : format(limit)}
         </span>
       </div>
       <Progress
         value={percent}
         className={cn(
-          'mt-1',
-          maxed && '[&>[data-slot=progress-indicator]]:bg-destructive',
+          "mt-1",
+          maxed && "[&>[data-slot=progress-indicator]]:bg-destructive",
         )}
       />
     </div>
   )
 }
 
-// The three limit meters: requests/min, tokens/day, lifetime spend.
 export function LimitMeters({
   usage,
   limits,

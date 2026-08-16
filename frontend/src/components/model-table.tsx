@@ -5,10 +5,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import { formatDollars, type ModelUsage } from '@/api'
+} from "@/components/ui/table"
+import { formatDollars, type ModelUsage } from "@/api"
 
-// Per-model usage breakdown (the assignment's "usage across the different models").
 export function ModelTable({
   byModel,
 }: {

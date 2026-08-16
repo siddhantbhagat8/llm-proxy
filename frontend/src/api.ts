@@ -54,7 +54,7 @@ export async function api<T>(
     ...init,
     headers: {
       Authorization: `Bearer ${key}`,
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
   })
   if (!response.ok) throw new ApiError(response.status)
@@ -62,8 +62,8 @@ export async function api<T>(
 }
 
 export const formatTokens = (n: number) =>
-  Intl.NumberFormat('en', {
-    notation: 'compact',
+  Intl.NumberFormat("en", {
+    notation: "compact",
     maximumFractionDigits: 1,
   }).format(n)
 

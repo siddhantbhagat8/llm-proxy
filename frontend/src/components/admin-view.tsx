@@ -1,9 +1,9 @@
-import { Fragment, useState } from 'react'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Input } from '@/components/ui/input'
+import { Fragment, useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Input } from "@/components/ui/input"
 import {
   Table,
   TableBody,
@@ -11,11 +11,11 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import { LimitMeters } from '@/components/meters'
-import { ModelTable } from '@/components/model-table'
-import { usePoll } from '@/use-poll'
-import { api, formatDollars, type AdminUser } from '@/api'
+} from "@/components/ui/table"
+import { LimitMeters } from "@/components/meters"
+import { ModelTable } from "@/components/model-table"
+import { usePoll } from "@/use-poll"
+import { api, formatDollars, type AdminUser } from "@/api"
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
@@ -26,7 +26,7 @@ function CopyButton({ text }: { text: string }) {
   }
   return (
     <Button variant="ghost" size="xs" onClick={copy}>
-      {copied ? 'copied' : 'copy'}
+      {copied ? "copied" : "copy"}
     </Button>
   )
 }
@@ -42,29 +42,29 @@ function EditLimits({
   onDone: () => void
 }) {
   const [rpm, setRpm] = useState(
-    user.limits.requests_per_minute?.toString() ?? '',
+    user.limits.requests_per_minute?.toString() ?? "",
   )
-  const [tpd, setTpd] = useState(user.limits.tokens_per_day?.toString() ?? '')
+  const [tpd, setTpd] = useState(user.limits.tokens_per_day?.toString() ?? "")
   const [spend, setSpend] = useState(
-    user.limits.lifetime_spend_dollars?.toString() ?? '',
+    user.limits.lifetime_spend_dollars?.toString() ?? "",
   )
 
   const save = async () => {
     await api(apiKey, `/admin/users/${user.id}/limits`, {
-      method: 'PUT',
+      method: "PUT",
       body: JSON.stringify({
-        requests_per_minute: rpm === '' ? null : Number(rpm),
-        tokens_per_day: tpd === '' ? null : Number(tpd),
-        lifetime_spend_dollars: spend === '' ? null : Number(spend),
+        requests_per_minute: rpm === "" ? null : Number(rpm),
+        tokens_per_day: tpd === "" ? null : Number(tpd),
+        lifetime_spend_dollars: spend === "" ? null : Number(spend),
       }),
     })
     onDone()
   }
 
   const fields: [string, string, (v: string) => void][] = [
-    ['requests / minute', rpm, setRpm],
-    ['tokens / day', tpd, setTpd],
-    ['lifetime spend $', spend, setSpend],
+    ["requests / minute", rpm, setRpm],
+    ["tokens / day", tpd, setTpd],
+    ["lifetime spend $", spend, setSpend],
   ]
   return (
     <div className="flex flex-wrap items-end gap-3">
@@ -98,16 +98,16 @@ function CreateUser({
   apiKey: string
   onCreated: () => void
 }) {
-  const [name, setName] = useState('')
+  const [name, setName] = useState("")
   const [isAdmin, setIsAdmin] = useState(false)
 
   const create = async () => {
     if (!name.trim()) return
-    await api(apiKey, '/admin/users', {
-      method: 'POST',
+    await api(apiKey, "/admin/users", {
+      method: "POST",
       body: JSON.stringify({ name: name.trim(), is_admin: isAdmin }),
     })
-    setName('')
+    setName("")
     setIsAdmin(false)
     onCreated()
   }
@@ -119,7 +119,7 @@ function CreateUser({
         placeholder="new user name"
         value={name}
         onChange={(e) => setName(e.target.value)}
-        onKeyDown={(e) => e.key === 'Enter' && create()}
+        onKeyDown={(e) => e.key === "Enter" && create()}
       />
       <label className="flex items-center gap-1.5 text-sm">
         <Checkbox
@@ -138,10 +138,8 @@ function CreateUser({
   )
 }
 
-// Fleet view: totals strip, then every user with live limit meters,
-// expandable per-model breakdown, and inline limit editing.
 export function AdminView({ apiKey }: { apiKey: string }) {
-  const { data: users, refresh } = usePoll<AdminUser[]>(apiKey, '/admin/users')
+  const { data: users, refresh } = usePoll<AdminUser[]>(apiKey, "/admin/users")
   const [expanded, setExpanded] = useState<number | null>(null)
   const [editing, setEditing] = useState<number | null>(null)
 
@@ -156,7 +154,7 @@ export function AdminView({ apiKey }: { apiKey: string }) {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        {users.length} users · {totalRequests.toLocaleString()} requests ·{' '}
+        {users.length} users · {totalRequests.toLocaleString()} requests ·{" "}
         {formatDollars(totalSpend)} spend · refreshing every 2s
       </p>
       <Card>
@@ -183,7 +181,7 @@ export function AdminView({ apiKey }: { apiKey: string }) {
                       )}
                     </TableCell>
                     <TableCell className="font-mono text-xs">
-                      {user.api_key.slice(0, 14)}…{' '}
+                      {user.api_key.slice(0, 14)}…{" "}
                       <CopyButton text={user.api_key} />
                     </TableCell>
                     <TableCell>
