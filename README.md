@@ -73,12 +73,37 @@ uv run -m scripts.demo   # live proof: chat, streaming, vision, all three limits
                                 # (requires the proxy and Ollama running)
 ```
 
+## Load demo
+
+Measured results and their analysis live in DESIGN.md §3.9. Two scenarios (`brew install oha` first; use `127.0.0.1`, not `localhost` — oha resolves to IPv6 while uvicorn binds IPv4):
+
+**Throughput** — the full pipeline against a stub upstream that plays a production-capacity provider (50ms simulated latency), on a throwaway database:
+
+```bash
+uv run uvicorn load.stub_upstream:app --port 11435 --log-level warning   # terminal 1
+DATABASE_PATH=llm_proxy.db.load OLLAMA_BASE_URL=http://localhost:11435 \
+  uv run uvicorn app.main:app --port 8000 --workers 8 --no-access-log   # terminal 2
+DATABASE_PATH=llm_proxy.db.load uv run -m load.provision                # prints a no-limit API key
+oha -z 30s -c 64 -m POST \
+  -H "Authorization: Bearer <key>" -H "Content-Type: application/json" \
+  -d '{"model":"llama3.2:1b","messages":[{"role":"user","content":"What is 2+2?"}],"max_tokens":32}' \
+  http://127.0.0.1:8000/chat/completions
+```
+
+**Concurrency** — 200 users streaming from real Ollama at once (restart Ollama with `OLLAMA_NUM_PARALLEL=4`: stop the brew service, run `OLLAMA_NUM_PARALLEL=4 ollama serve`), against the normal database so the dashboard ticks live:
+
+```bash
+uv run uvicorn app.main:app --port 8000 --no-access-log                 # terminal 2
+uv run -m load.scenario --users 200                                     # provisions its own users
+```
+
 ## Project layout
 
 ```
 app/            FastAPI proxy: models/, services/, views/ (auth, forwarding, limits, billing)
 frontend/       React + TypeScript + Vite dashboard (built to frontend/dist/)
 scripts/        create_user.py, chat.py, demo.py (end-to-end proof via the openai client)
+load/           load demo: stub_upstream.py, provision.py, scenario.py (DESIGN.md §3.9)
 tests/          pytest suite, one test per endpoint/behavior
 DESIGN.md       Architecture + one section per decision (alternatives, tradeoffs, why)
 ```

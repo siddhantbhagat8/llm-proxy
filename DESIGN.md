@@ -152,4 +152,30 @@ bob    sk-… [copy] ▓▓▓▓▓ 60/60! …
 
 **Admin table shows plaintext keys with a copy button** — consistent with the deliberate plaintext-at-rest decision (3.6): the operator can grab any user's key mid-demo to switch identities. Under hash-at-rest, this column disappears; the UI would show key prefixes only.
 
-<!-- Upcoming: load-demo measured numbers; demo runbook. -->
+### 3.9 Load demo: measured numbers
+
+All measurements on the development machine (Apple Silicon Mac), `oha` driving `POST /chat/completions` for a provisioned no-limit user; the stub upstream (`load/stub_upstream.py`) simulates a production-capacity provider at 50ms latency. Reproduce with the commands in the README.
+
+| run | rps | p50 | p95 | p99 | success |
+|---|---|---|---|---|---|
+| stub direct (baseline), c=64 | 1,198 | 53ms | 57ms | 60ms | 100% |
+| through proxy, 1 worker, c=64 | 103 | 448ms | 1.53s | 2.44s | 99.6% |
+| **through proxy, 8 workers, c=64** | **1,210** | **52ms** | **56ms** | **71ms** | **100%** |
+| through proxy, 8 workers, c=256 | 720 | 199ms | 1.13s | 1.85s | 98.8% |
+
+The 8-worker run is statistically indistinguishable from hitting the stub directly — **the proxy's added latency is sub-millisecond** at the sustained plateau, and 1,210 rps clears the "hundreds of requests per second" bar with the full pipeline (auth → three limit checks → forward → usage recording) on every request. c=256 is past the sweet spot (queueing tails); c=64–128 is the honest sustained figure.
+
+**Billing integrity under load**: on a fresh database, recorded `usage_events` rows matched successful responses exactly — plus a handful of requests that completed upstream just as the load generator hit its deadline and hung up. Those are still billed, which is *correct*: usage records what the provider consumed, not what the client waited around for.
+
+**Measured, then scaled.** A single async process plateaued at ~103 rps — CPU-bound on one core (per-request work: JSON handling, four SQLite statements, httpx client machinery ≈ a few ms), with latency under load being pure queueing. `--workers 8` was the documented scale knob (3.7); turning it produced the 12× jump. Eight processes share the SQLite file safely: WAL + `busy_timeout` + short single-statement writes.
+
+**What load testing actually caught** — two real bugs that functional tests missed, which is the argument for load-testing at all:
+
+1. **Sync auth dependencies ran in FastAPI's threadpool**, so the single SQLite connection was used from many threads concurrently → `InterfaceError`s and corrupted bindings under load. Fix: the dependencies are `async`, which pins every DB call to the event-loop thread — the single-writer design made literal. (Rule recorded in code: anything touching the DB stays async.)
+2. **Multi-worker boot raced on a fresh database**: eight processes running `PRAGMA journal_mode=WAL` + schema creation simultaneously, with `busy_timeout` set *after* those statements → instant `database is locked`, server exit. Fix: `busy_timeout` is set first.
+
+Tuning that came with this: `synchronous=NORMAL` (WAL-safe; skips fsync-per-commit — at most the last writes are lost on an OS crash, acceptable for usage events) and an httpx pool limit raised above its default 100 connections.
+
+**Concurrency scenario (real Ollama, `OLLAMA_NUM_PARALLEL=4`)**: `load/scenario.py` opened **200 simultaneous streaming requests — all 200 completed, zero failures — held open for 125 seconds** while Ollama's FIFO drained them four at a time. The queue is visible as time-to-first-token: p50 94s, max 118s, connections open throughout. Meanwhile a 3-RPM user fired six requests: exactly 3 succeeded, 3 got live 429s. This is the "lots of concurrent users" half of the requirement with genuine model traffic; the throughput table above is the "hundreds of rps" half.
+
+<!-- Upcoming: demo runbook. -->
