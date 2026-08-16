@@ -23,7 +23,7 @@ Dashboard at `http://localhost:8000` — paste an API key; admins see all users,
 ```
 app/            FastAPI proxy: models/, services/, views/ (auth, forwarding, limits, billing)
 frontend/       React + TypeScript + Vite dashboard (built to frontend/dist/)
-scripts/        create_user.py, chat.py, demo.py (end-to-end proof via the openai client)
+scripts/        create_user.py, chat.py (requests via the stock openai client)
 load/           stub_upstream.py, provision.py, scenario.py (load and concurrency runs)
 tests/          pytest suite, one test per endpoint/behavior
 ```
