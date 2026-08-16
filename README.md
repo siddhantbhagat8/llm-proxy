@@ -41,6 +41,10 @@ uv run uvicorn app.main:app --port 8000
 
 Smoke test: `curl http://localhost:8000/healthz`
 
+The dashboard is served at <http://localhost:8000> — paste an API key: an admin
+key opens the fleet view (all users, live limit meters, per-model usage, limit
+editing, user creation), a user key shows that user's own usage.
+
 Create users (writes directly to the DB and prints the API key; this is also how
 the first admin is created):
 
@@ -79,4 +83,4 @@ tests/          pytest suite, one test per endpoint/behavior
 DESIGN.md       Architecture + one section per decision (alternatives, tradeoffs, why)
 ```
 
-Dependencies are pinned exactly (`pyproject.toml` / `package.json`, with `uv.lock` / `bun.lock` committed).
+Dependencies are pinned exactly (`pyproject.toml` / `package.json`, with `uv.lock` / `bun.lock` committed). Frontend code is formatted with Prettier (`bun run format`).
