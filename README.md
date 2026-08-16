@@ -41,11 +41,41 @@ uv run uvicorn app.main:app --port 8000
 
 Smoke test: `curl http://localhost:8000/healthz`
 
+Create users (writes directly to the DB and prints the API key; this is also how
+the first admin is created):
+
+```bash
+uv run python -m scripts.create_user admin --admin
+uv run python -m scripts.create_user alice
+```
+
+Then point any OpenAI client at the proxy:
+
+```python
+client = openai.OpenAI(base_url="http://localhost:8000", api_key="<key from create_user>")
+```
+
+Or use the request script:
+
+```bash
+uv run python -m scripts.chat <api-key> "Say hello" [--model llama3.2:1b] [--stream]
+```
+
+## Tests & demo
+
+```bash
+uv run pytest               # unit tests (Ollama mocked)
+uv run python -m scripts.demo   # live proof: chat, streaming, vision, all three limits
+                                # (requires the proxy and Ollama running)
+```
+
 ## Project layout
 
 ```
-app/            FastAPI proxy: auth, forwarding, usage tracking, limits, admin API
+app/            FastAPI proxy: models/, services/, views/ (auth, forwarding, limits, billing)
 frontend/       React + TypeScript + Vite dashboard (built to frontend/dist/)
+scripts/        create_user.py, chat.py, demo.py (end-to-end proof via the openai client)
+tests/          pytest suite, one test per endpoint/behavior
 DESIGN.md       Architecture + one section per decision (alternatives, tradeoffs, why)
 ```
 
