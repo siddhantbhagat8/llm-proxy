@@ -5,3 +5,4 @@ node_modules/
 frontend/dist/
 llm_proxy.db*
 DESIGN.md
+llm-proxy-test-image.png
