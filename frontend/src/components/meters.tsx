@@ -21,12 +21,12 @@ function Meter({
   const percent = limit ? Math.min(100, (used / limit) * 100) : 0
   const maxed = limit !== null && used >= limit
   return (
-    <div className="min-w-28">
-      <div className="flex justify-between text-xs text-muted-foreground">
-        <span>{label}</span>
+    <div className="min-w-44 flex-1">
+      <div className="flex justify-between gap-2 text-xs text-muted-foreground">
+        <span className="whitespace-nowrap">{label}</span>
         <span
           className={cn(
-            "tabular-nums",
+            "tabular-nums whitespace-nowrap",
             maxed && "font-semibold text-destructive",
           )}
         >
@@ -52,7 +52,7 @@ export function LimitMeters({
   limits: Limits
 }) {
   return (
-    <div className="grid grid-cols-3 gap-4">
+    <div className="flex flex-wrap gap-x-4 gap-y-2">
       <Meter
         label="req/min"
         used={usage.requests_last_minute}

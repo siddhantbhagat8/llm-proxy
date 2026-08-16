@@ -69,10 +69,13 @@ function EditLimits({
   return (
     <div className="flex flex-wrap items-end gap-3">
       {fields.map(([label, value, set]) => (
-        <label key={label} className="text-xs text-muted-foreground">
+        <label
+          key={label}
+          className="flex flex-col gap-1.5 text-xs text-muted-foreground"
+        >
           {label}
           <Input
-            className="mt-1 w-36"
+            className="w-36"
             type="number"
             min="0"
             placeholder="∞ (no limit)"
@@ -81,10 +84,8 @@ function EditLimits({
           />
         </label>
       ))}
-      <Button size="sm" onClick={save}>
-        Save
-      </Button>
-      <span className="text-xs text-muted-foreground">
+      <Button onClick={save}>Save</Button>
+      <span className="flex h-8 items-center text-xs text-muted-foreground">
         empty field = no limit
       </span>
     </div>
@@ -164,7 +165,7 @@ export function AdminView({ apiKey }: { apiKey: string }) {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>API key</TableHead>
-                <TableHead className="w-md">Limits</TableHead>
+                <TableHead className="w-2xl">Limits</TableHead>
                 <TableHead />
               </TableRow>
             </TableHeader>
