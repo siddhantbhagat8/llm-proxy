@@ -53,18 +53,34 @@ def main() -> None:
     messages: list[ChatCompletionMessageParam] = [
         {"role": "user", "content": build_content(args.prompt, args.image)}
     ]
-    if args.stream:
-        stream = client.chat.completions.create(
-            model=args.model, messages=messages, stream=True
-        )
-        for chunk in stream:
-            if chunk.choices and chunk.choices[0].delta.content:
-                print(chunk.choices[0].delta.content, end="", flush=True)
-        print()
-    else:
-        completion = client.chat.completions.create(model=args.model, messages=messages)
-        print(completion.choices[0].message.content)
-        print(f"\nusage: {completion.usage}")
+    try:
+        if args.stream:
+            stream = client.chat.completions.create(
+                model=args.model, messages=messages, stream=True
+            )
+            for chunk in stream:
+                if chunk.choices and chunk.choices[0].delta.content:
+                    print(chunk.choices[0].delta.content, end="", flush=True)
+            print()
+        else:
+            completion = client.chat.completions.create(
+                model=args.model, messages=messages
+            )
+            print(completion.choices[0].message.content)
+            print(f"\nusage: {completion.usage}")
+    except openai.APIStatusError as error:
+        raise SystemExit(f"error {error.status_code}: {error_message(error)}") from None
+    except openai.APIConnectionError:
+        raise SystemExit(
+            "error: could not reach the proxy at http://localhost:8000 — is it running?"
+        ) from None
+
+
+def error_message(error: openai.APIStatusError) -> str:
+    # The SDK unwraps the {"error": {...}} envelope, so body is the inner object.
+    if isinstance(error.body, dict) and "message" in error.body:
+        return str(error.body["message"])
+    return str(error.body)
 
 
 if __name__ == "__main__":
