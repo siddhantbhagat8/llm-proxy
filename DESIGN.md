@@ -129,4 +129,27 @@ GET  /                                          dashboard (frontend/dist)
 
 **Why no request queue in the proxy** (a suggested bonus feature): upstream queueing already exists — Ollama queues beyond its parallel slots exactly as real providers queue and rate-limit internally. A proxy-side queue would double-queue every request: added latency and a second tuning surface, no added protection.
 
-<!-- Upcoming: admin UI scope; load-demo measured numbers. -->
+### 3.8 Dashboard (bonus feature)
+
+**One page; the API key decides the view.** The dashboard authenticates exactly like the API — paste a key, it's sent as `Authorization: Bearer` on every poll. An admin key unlocks the fleet view; a user key shows that user's own usage. No separate admin app, no client-side routing, no second auth concept.
+
+```
+admin view                                          user view
+──────────────────────────────────────────          ─────────────────────────
+3 users · 1,204 requests · $1.87 spend  ⟳2s         alice — your usage
+name   key         req/min    tokens/day   spend    [▓▓▓░ 34/60] [▓░ 88k/1M] [▓▓ $0.42/$5]
+alice  sk-… [copy] ▓▓▓ 34/60  ▓ 88k/1M  ▓ $0.42/$5  per-model: llama3.2:1b · moondream
+  └ per-model breakdown        [edit limits]
+bob    sk-… [copy] ▓▓▓▓▓ 60/60! …
++ create user [name] [ ] admin → key shown once
+```
+
+**Live limit meters.** The usage summary already returns `requests_last_minute` and `tokens_last_day` — the exact numerators for the three limits — so each renders as a `used / limit` progress meter (red at 100%, ∞ when no limit set). With **2-second polling**, usage visibly ticks during a load run and a rate-limited user's meter pins red live. Polling over websockets: one `setInterval`, and 2s staleness is irrelevant for a billing dashboard.
+
+**Per-model breakdown is first-class**, not decoration: "usage across the different models" is an explicit assignment requirement. Grounding this sketch against the real API surfaced that the summary lacked it — fixed by adding a `GROUP BY model` breakdown to the existing summary payload (no new endpoint; the list and detail views inherit it).
+
+**Components: shadcn/ui.** shadcn is not a component-library dependency — its CLI copies component *source* into the repo (Radix primitives + Tailwind underneath). Visual design is offloaded to proven components while every line remains ours to read and defend — unlike an opaque library (MUI/AntD), and much faster than hand-rolling CSS under a deadline. Cost accepted: Tailwind + a few Radix packages join the pinned deps, plus one-time CLI setup. shadcn's `Progress` is the limit meter.
+
+**Admin table shows plaintext keys with a copy button** — consistent with the deliberate plaintext-at-rest decision (3.6): the operator can grab any user's key mid-demo to switch identities. Under hash-at-rest, this column disappears; the UI would show key prefixes only.
+
+<!-- Upcoming: load-demo measured numbers; demo runbook. -->
