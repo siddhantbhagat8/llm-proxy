@@ -10,9 +10,12 @@ import mimetypes
 from pathlib import Path
 
 import openai
+from openai.types.chat import ChatCompletionContentPartParam, ChatCompletionMessageParam
 
 
-def build_content(prompt: str, image_path: str | None):
+def build_content(
+    prompt: str, image_path: str | None
+) -> str | list[ChatCompletionContentPartParam]:
     if image_path is None:
         return prompt
     # Ollama accepts vision input only as base64 data URIs (jpeg/png/webp).
@@ -47,7 +50,9 @@ def main() -> None:
     client = openai.OpenAI(
         base_url="http://localhost:8000", api_key=args.api_key, max_retries=0
     )
-    messages = [{"role": "user", "content": build_content(args.prompt, args.image)}]
+    messages: list[ChatCompletionMessageParam] = [
+        {"role": "user", "content": build_content(args.prompt, args.image)}
+    ]
     if args.stream:
         stream = client.chat.completions.create(
             model=args.model, messages=messages, stream=True
